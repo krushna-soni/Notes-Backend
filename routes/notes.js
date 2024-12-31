@@ -27,6 +27,20 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET Note by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const note = await Note.findById(req.params.id);
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+    res.json(note);
+  } catch (error) {
+    res.status(400).json({ error: 'Failed to fetch note' });
+  }
+});
+
+
 // POST Create Note
 router.post('/', upload.single('image'), async (req, res) => {
   const { title, content } = req.body;

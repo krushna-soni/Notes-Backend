@@ -3,6 +3,7 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('../config/cloudinary');
 const Note = require('../models/Note');
+const { verifyToken } = require('./auth'); // Middleware for token verification
 const router = express.Router();
 
 // Cloudinary Storage Configuration
@@ -17,20 +18,20 @@ const upload = multer({ storage });
 
 // CRUD Endpoints
 
-// GET All Notes
-router.get('/', async (req, res) => {
+// GET All Notes for Logged-in User
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const notes = await Note.find();
+    const notes = await Note.find({ userId: req.user.id }); // Fetch notes for logged-in user
     res.json(notes);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch notes' });
   }
 });
 
-// GET Note by ID
-router.get('/:id', async (req, res) => {
+// GET Note by ID (Logged-in User)
+router.get('/:id', verifyToken, async (req, res) => {
   try {
-    const note = await Note.findById(req.params.id);
+    const note = await Note.findOne({ _id: req.params.id, userId: req.user.id }); // Fetch note for logged-in user
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
@@ -40,39 +41,44 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-
-// POST Create Note
-router.post('/', upload.single('image'), async (req, res) => {
+// POST Create Note (for Logged-in User)
+router.post('/', verifyToken, upload.single('image'), async (req, res) => {
   const { title, content } = req.body;
   const image = req.file ? req.file.path : null; // Cloudinary URL
   try {
-    const newNote = await Note.create({ title, content, image });
+    const newNote = await Note.create({ title, content, image, userId: req.user.id }); // Associate with logged-in user
     res.status(201).json(newNote);
   } catch (error) {
     res.status(400).json({ error: 'Failed to create note' });
   }
 });
 
-// PUT Update Note
-router.put('/:id', upload.single('image'), async (req, res) => {
+// PUT Update Note (for Logged-in User)
+router.put('/:id', verifyToken, upload.single('image'), async (req, res) => {
   const { title, content } = req.body;
   const image = req.file ? req.file.path : null; // Cloudinary URL
   try {
-    const updatedNote = await Note.findByIdAndUpdate(
-      req.params.id,
+    const updatedNote = await Note.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.id }, // Update only for logged-in user
       { title, content, image },
       { new: true }
     );
+    if (!updatedNote) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
     res.json(updatedNote);
   } catch (error) {
     res.status(400).json({ error: 'Failed to update note' });
   }
 });
 
-// DELETE Note
-router.delete('/:id', async (req, res) => {
+// DELETE Note (for Logged-in User)
+router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    await Note.findByIdAndDelete(req.params.id);
+    const note = await Note.findOneAndDelete({ _id: req.params.id, userId: req.user.id }); // Delete only for logged-in user
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
     res.json({ message: 'Note deleted' });
   } catch (error) {
     res.status(400).json({ error: 'Failed to delete note' });

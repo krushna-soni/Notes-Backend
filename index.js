@@ -15,7 +15,7 @@ const app = express();
 // Use CORS middleware to allow frontend access
 app.use(
   cors({
-    origin: 'http://localhost:3000', // Update with your frontend's URL in production
+    origin: process.env.FRONTEND_URL,
     methods: 'GET,POST,PUT,DELETE',
     allowedHeaders: 'Content-Type,Authorization',
   })

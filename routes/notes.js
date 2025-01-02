@@ -54,25 +54,25 @@ router.post('/', verifyToken, upload.single('image'), async (req, res) => {
 });
 
 // PUT Update Note (for Logged-in User)
+// PATCH Update Note (for Logged-in User)
 router.patch('/:id', verifyToken, upload.single('image'), async (req, res) => {
   const { title, content } = req.body;
-  let image = req.file ? req.file.path : null; // Cloudinary URL
-  
+  const image = req.file ? req.file.path : undefined; // undefined if no file uploaded
+
   try {
     const note = await Note.findOne({ _id: req.params.id, userId: req.user.id });
-    
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
 
-    // Only update fields that are provided
-    if (!image) {
-      image = note.image; // Keep the current image if no new one is uploaded
-    }
-
+    // Update only provided fields
     const updatedNote = await Note.findOneAndUpdate(
       { _id: req.params.id, userId: req.user.id },
-      { title, content, image },
+      { 
+        title, 
+        content, 
+        image: image || note.image // Retain old image if no new file is uploaded
+      },
       { new: true }
     );
 
@@ -81,7 +81,6 @@ router.patch('/:id', verifyToken, upload.single('image'), async (req, res) => {
     res.status(400).json({ error: 'Failed to update note' });
   }
 });
-
 
 // DELETE Note (for Logged-in User)
 router.delete('/:id', verifyToken, async (req, res) => {

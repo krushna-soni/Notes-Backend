@@ -96,4 +96,26 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
+// PATCH Remove Image from Note
+router.patch('/:id/remove-image', verifyToken, async (req, res) => {
+  const { imagePath } = req.body;
+
+  try {
+    const note = await Note.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.id },
+      { $pull: { images: imagePath } }, // Remove the specific image from the array
+      { new: true }
+    );
+
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    res.json(note);
+  } catch (error) {
+    res.status(400).json({ error: 'Failed to remove image' });
+  }
+});
+
+
 module.exports = router;
